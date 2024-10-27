@@ -396,5 +396,5 @@ namespace lago {
   gtsam::Values initialize(const gtsam::NonlinearFactorGraph& graph, bool useOdometricPath = true);
   gtsam::Values initialize(const gtsam::NonlinearFactorGraph& graph, const gtsam::Values& initialGuess);
 }
-  
+
 }  // namespace gtsam
