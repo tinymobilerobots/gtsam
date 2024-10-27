@@ -11,7 +11,9 @@ print("PACKAGES: ", packages)
 package_data = {
     '': [
         "./*.so",
-        "./*.dll"
+        "./*.dll",
+        "./*.pyd",
+        "*.pyi", "**/*.pyi",  # Add the type hints
     ]
 }
 
