@@ -11,7 +11,7 @@
 
 /**
  * @file   HybridNonlinearFactor.h
- * @brief  Nonlinear Mixture factor of continuous and discrete.
+ * @brief  A set of nonlinear factors indexed by a set of discrete keys.
  * @author Kevin Doherty, kdoherty@mit.edu
  * @author Varun Agrawal
  * @date   December 2021
@@ -26,25 +26,23 @@
 #include <gtsam/nonlinear/NonlinearFactorGraph.h>
 #include <gtsam/nonlinear/Symbol.h>
 
-#include <algorithm>
-#include <cmath>
-#include <limits>
 #include <vector>
 
 namespace gtsam {
 
-/// Alias for a NonlinearFactor shared pointer and double scalar pair.
-using NonlinearFactorValuePair = std::pair<NonlinearFactor::shared_ptr, double>;
+/// Alias for a NoiseModelFactor shared pointer and double scalar pair.
+using NonlinearFactorValuePair =
+    std::pair<NoiseModelFactor::shared_ptr, double>;
 
 /**
  * @brief Implementation of a discrete-conditioned hybrid factor.
  *
  * Implements a joint discrete-continuous factor where the discrete variable
- * serves to "select" a hybrid component corresponding to a NonlinearFactor.
+ * serves to "select" a hybrid component corresponding to a NoiseModelFactor.
  *
  * This class stores all factors as HybridFactors which can then be typecast to
- * one of (NonlinearFactor, GaussianFactor) which can then be checked to perform
- * the correct operation.
+ * one of (NoiseModelFactor, GaussianFactor) which can then be checked to
+ * perform the correct operation.
  *
  * In factor graphs the error function typically returns 0.5*|h(x)-z|^2, i.e.,
  * the negative log-likelihood for a Gaussian noise model.
@@ -57,80 +55,69 @@ using NonlinearFactorValuePair = std::pair<NonlinearFactor::shared_ptr, double>;
  *
  * @ingroup hybrid
  */
-class HybridNonlinearFactor : public HybridFactor {
+class GTSAM_EXPORT HybridNonlinearFactor : public HybridFactor {
  public:
   using Base = HybridFactor;
   using This = HybridNonlinearFactor;
   using shared_ptr = std::shared_ptr<HybridNonlinearFactor>;
-  using sharedFactor = std::shared_ptr<NonlinearFactor>;
+  using sharedFactor = std::shared_ptr<NoiseModelFactor>;
 
   /**
    * @brief typedef for DecisionTree which has Keys as node labels and
-   * pairs of NonlinearFactor & an arbitrary scalar as leaf nodes.
+   * pairs of NoiseModelFactor & an arbitrary scalar as leaf nodes.
    */
-  using Factors = DecisionTree<Key, NonlinearFactorValuePair>;
+  using FactorValuePairs = DecisionTree<Key, NonlinearFactorValuePair>;
 
  private:
-  /// Decision tree of Gaussian factors indexed by discrete keys.
-  Factors factors_;
+  /// Decision tree of nonlinear factors indexed by discrete keys.
+  FactorValuePairs factors_;
+
+  /// HybridFactor method implementation. Should not be used.
+  AlgebraicDecisionTree<Key> errorTree(
+      const VectorValues& continuousValues) const override {
+    throw std::runtime_error(
+        "HybridNonlinearFactor::error does not take VectorValues.");
+  }
 
  public:
+  /// Default constructor, mainly for serialization.
   HybridNonlinearFactor() = default;
 
   /**
-   * @brief Construct from Decision tree.
+   * @brief Construct a new HybridNonlinearFactor on a single discrete key,
+   * providing the factors for each mode m as a vector of factors ϕ_m(x).
+   * The value ϕ(x,m) for the factor is simply ϕ_m(x).
    *
-   * @param keys Vector of keys for continuous factors.
-   * @param discreteKeys Vector of discrete keys.
-   * @param factors Decision tree with of shared factors.
+   * @param discreteKey The discrete key for the "mode", indexing components.
+   * @param factors Vector of gaussian factors, one for each mode.
    */
-  HybridNonlinearFactor(const KeyVector& keys, const DiscreteKeys& discreteKeys,
-                        const Factors& factors)
-      : Base(keys, discreteKeys), factors_(factors) {}
+  HybridNonlinearFactor(
+      const DiscreteKey& discreteKey,
+      const std::vector<NoiseModelFactor::shared_ptr>& factors);
 
   /**
-   * @brief Convenience constructor that generates the underlying factor
-   * decision tree for us.
+   * @brief Construct a new HybridNonlinearFactor on a single discrete key,
+   * including a scalar error value for each mode m. The factors and scalars are
+   * provided as a vector of pairs (ϕ_m(x), E_m).
+   * The value ϕ(x,m) for the factor is now ϕ_m(x) + E_m.
    *
-   * Here it is important that the vector of factors has the correct number of
-   * elements based on the number of discrete keys and the cardinality of the
-   * keys, so that the decision tree is constructed appropriately.
-   *
-   * @tparam FACTOR The type of the factor shared pointers being passed in.
-   * Will be typecast to NonlinearFactor shared pointers.
-   * @param keys Vector of keys for continuous factors.
-   * @param discreteKey The discrete key indexing each component factor.
-   * @param factors Vector of nonlinear factor and scalar pairs.
-   * Same size as the cardinality of discreteKey.
+   * @param discreteKey The discrete key for the "mode", indexing components.
+   * @param pairs Vector of gaussian factor-scalar pairs, one per mode.
    */
-  template <typename FACTOR>
-  HybridNonlinearFactor(
-      const KeyVector& keys, const DiscreteKey& discreteKey,
-      const std::vector<std::pair<std::shared_ptr<FACTOR>, double>>& factors)
-      : Base(keys, {discreteKey}) {
-    std::vector<NonlinearFactorValuePair> nonlinear_factors;
-    KeySet continuous_keys_set(keys.begin(), keys.end());
-    KeySet factor_keys_set;
-    for (auto&& [f, val] : factors) {
-      // Insert all factor continuous keys in the continuous keys set.
-      std::copy(f->keys().begin(), f->keys().end(),
-                std::inserter(factor_keys_set, factor_keys_set.end()));
+  HybridNonlinearFactor(const DiscreteKey& discreteKey,
+                        const std::vector<NonlinearFactorValuePair>& pairs);
 
-      if (auto nf = std::dynamic_pointer_cast<NonlinearFactor>(f)) {
-        nonlinear_factors.emplace_back(nf, val);
-      } else {
-        throw std::runtime_error(
-            "Factors passed into HybridNonlinearFactor need to be nonlinear!");
-      }
-    }
-    factors_ = Factors({discreteKey}, nonlinear_factors);
-
-    if (continuous_keys_set != factor_keys_set) {
-      throw std::runtime_error(
-          "The specified continuous keys and the keys in the factors don't "
-          "match!");
-    }
-  }
+  /**
+   * @brief Construct a new HybridNonlinearFactor on a several discrete keys M,
+   * including a scalar error value for each assignment m. The factors and
+   * scalars are provided as a DecisionTree<Key> of pairs (ϕ_M(x), E_M).
+   * The value ϕ(x,M) for the factor is again ϕ_m(x) + E_m.
+   *
+   * @param discreteKeys Discrete variables and their cardinalities.
+   * @param factors The decision tree of nonlinear factor/scalar pairs.
+   */
+  HybridNonlinearFactor(const DiscreteKeys& discreteKeys,
+                        const FactorValuePairs& factors);
 
   /**
    * @brief Compute error of the HybridNonlinearFactor as a tree.
@@ -140,16 +127,7 @@ class HybridNonlinearFactor : public HybridFactor {
    * @return AlgebraicDecisionTree<Key> A decision tree with the same keys
    * as the factor, and leaf values as the error.
    */
-  AlgebraicDecisionTree<Key> errorTree(const Values& continuousValues) const {
-    // functor to convert from sharedFactor to double error value.
-    auto errorFunc =
-        [continuousValues](const std::pair<sharedFactor, double>& f) {
-          auto [factor, val] = f;
-          return factor->error(continuousValues) + val;
-        };
-    DecisionTree<Key, double> result(factors_, errorFunc);
-    return result;
-  }
+  AlgebraicDecisionTree<Key> errorTree(const Values& continuousValues) const;
 
   /**
    * @brief Compute error of factor given both continuous and discrete values.
@@ -159,13 +137,7 @@ class HybridNonlinearFactor : public HybridFactor {
    * @return double The error of this factor.
    */
   double error(const Values& continuousValues,
-               const DiscreteValues& discreteValues) const {
-    // Retrieve the factor corresponding to the assignment in discreteValues.
-    auto [factor, val] = factors_(discreteValues);
-    // Compute the error for the selected factor
-    const double factorError = factor->error(continuousValues);
-    return factorError + val;
-  }
+               const DiscreteValues& discreteValues) const;
 
   /**
    * @brief Compute error of factor given hybrid values.
@@ -173,67 +145,24 @@ class HybridNonlinearFactor : public HybridFactor {
    * @param values The continuous Values and the discrete assignment.
    * @return double The error of this factor.
    */
-  double error(const HybridValues& values) const override {
-    return error(values.nonlinear(), values.discrete());
-  }
+  double error(const HybridValues& values) const override;
 
   /**
    * @brief Get the dimension of the factor (number of rows on linearization).
    * Returns the dimension of the first component factor.
    * @return size_t
    */
-  size_t dim() const {
-    const auto assignments = DiscreteValues::CartesianProduct(discreteKeys_);
-    auto [factor, val] = factors_(assignments.at(0));
-    return factor->dim();
-  }
+  size_t dim() const;
 
   /// Testable
   /// @{
 
   /// print to stdout
-  void print(
-      const std::string& s = "",
-      const KeyFormatter& keyFormatter = DefaultKeyFormatter) const override {
-    std::cout << (s.empty() ? "" : s + " ");
-    Base::print("", keyFormatter);
-    std::cout << "\nHybridNonlinearFactor\n";
-    auto valueFormatter = [](const std::pair<sharedFactor, double>& v) {
-      auto [factor, val] = v;
-      if (factor) {
-        return "Nonlinear factor on " + std::to_string(factor->size()) +
-               " keys";
-      } else {
-        return std::string("nullptr");
-      }
-    };
-    factors_.print("", keyFormatter, valueFormatter);
-  }
+  void print(const std::string& s = "", const KeyFormatter& keyFormatter =
+                                            DefaultKeyFormatter) const override;
 
   /// Check equality
-  bool equals(const HybridFactor& other, double tol = 1e-9) const override {
-    // We attempt a dynamic cast from HybridFactor to HybridNonlinearFactor. If
-    // it fails, return false.
-    if (!dynamic_cast<const HybridNonlinearFactor*>(&other)) return false;
-
-    // If the cast is successful, we'll properly construct a
-    // HybridNonlinearFactor object from `other`
-    const HybridNonlinearFactor& f(
-        static_cast<const HybridNonlinearFactor&>(other));
-
-    // Ensure that this HybridNonlinearFactor and `f` have the same `factors_`.
-    auto compare = [tol](const std::pair<sharedFactor, double>& a,
-                         const std::pair<sharedFactor, double>& b) {
-      return traits<NonlinearFactor>::Equals(*a.first, *b.first, tol) &&
-             (a.second == b.second);
-    };
-    if (!factors_.equals(f.factors_, compare)) return false;
-
-    // If everything above passes, and the keys_ and discreteKeys_
-    // member variables are identical, return true.
-    return (std::equal(keys_.begin(), keys_.end(), f.keys().begin()) &&
-            (discreteKeys_ == f.discreteKeys_));
-  }
+  bool equals(const HybridFactor& other, double tol = 1e-9) const override;
 
   /// @}
 
@@ -241,28 +170,23 @@ class HybridNonlinearFactor : public HybridFactor {
   /// discreteValues.
   GaussianFactor::shared_ptr linearize(
       const Values& continuousValues,
-      const DiscreteValues& discreteValues) const {
-    auto factor = factors_(discreteValues).first;
-    return factor->linearize(continuousValues);
-  }
+      const DiscreteValues& discreteValues) const;
 
   /// Linearize all the continuous factors to get a HybridGaussianFactor.
   std::shared_ptr<HybridGaussianFactor> linearize(
-      const Values& continuousValues) const {
-    // functional to linearize each factor in the decision tree
-    auto linearizeDT =
-        [continuousValues](const std::pair<sharedFactor, double>& f)
-        -> GaussianFactorValuePair {
-      auto [factor, val] = f;
-      return {factor->linearize(continuousValues), val};
-    };
+      const Values& continuousValues) const;
 
-    DecisionTree<Key, std::pair<GaussianFactor::shared_ptr, double>>
-        linearized_factors(factors_, linearizeDT);
+ private:
+  /// Helper struct to assist private constructor below.
+  struct ConstructorHelper;
 
-    return std::make_shared<HybridGaussianFactor>(
-        continuousKeys_, discreteKeys_, linearized_factors);
-  }
+  // Private constructor using ConstructorHelper above.
+  HybridNonlinearFactor(const ConstructorHelper& helper);
+};
+
+// traits
+template <>
+struct traits<HybridNonlinearFactor> : public Testable<HybridNonlinearFactor> {
 };
 
 }  // namespace gtsam

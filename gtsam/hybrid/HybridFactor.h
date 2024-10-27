@@ -32,9 +32,6 @@ namespace gtsam {
 
 class HybridValues;
 
-/// Alias for DecisionTree of GaussianFactorGraphs
-using GaussianFactorGraphTree = DecisionTree<Key, GaussianFactorGraph>;
-
 KeyVector CollectKeys(const KeyVector &continuousKeys,
                       const DiscreteKeys &discreteKeys);
 KeyVector CollectKeys(const KeyVector &keys1, const KeyVector &keys2);
@@ -135,6 +132,10 @@ class GTSAM_EXPORT HybridFactor : public Factor {
 
   /// Return only the continuous keys for this factor.
   const KeyVector &continuousKeys() const { return continuousKeys_; }
+
+  /// Virtual class to compute tree of linear errors.
+  virtual AlgebraicDecisionTree<Key> errorTree(
+      const VectorValues &values) const = 0;
 
   /// @}
 

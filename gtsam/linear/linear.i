@@ -603,7 +603,7 @@ virtual class GaussianConditional : gtsam::JacobianFactor {
   bool equals(const gtsam::GaussianConditional& cg, double tol) const;
 
   // Standard Interface
-  double logNormalizationConstant() const;
+  double negLogConstant() const;
   double logProbability(const gtsam::VectorValues& x) const;
   double evaluate(const gtsam::VectorValues& x) const;
   double error(const gtsam::VectorValues& x) const;
@@ -767,17 +767,11 @@ virtual class IterativeOptimizationParameters {
 virtual class ConjugateGradientParameters
     : gtsam::IterativeOptimizationParameters {
   ConjugateGradientParameters();
-  int getMinIterations() const;
-  int getMaxIterations() const;
-  int getReset() const;
-  double getEpsilon_rel() const;
-  double getEpsilon_abs() const;
-
-  void setMinIterations(int value);
-  void setMaxIterations(int value);
-  void setReset(int value);
-  void setEpsilon_rel(double value);
-  void setEpsilon_abs(double value);
+  int minIterations;
+  int maxIterations;
+  int reset;
+  double epsilon_rel;
+  double epsilon_abs;
 };
 
 #include <gtsam/linear/Preconditioner.h>
@@ -795,8 +789,10 @@ virtual class BlockJacobiPreconditionerParameters
 #include <gtsam/linear/PCGSolver.h>
 virtual class PCGSolverParameters : gtsam::ConjugateGradientParameters {
   PCGSolverParameters();
+  PCGSolverParameters(const gtsam::PreconditionerParameters* preconditioner);
   void print(string s = "");
-  void setPreconditionerParams(gtsam::PreconditionerParameters* preconditioner);
+
+  std::shared_ptr<gtsam::PreconditionerParameters> preconditioner;
 };
 
 #include <gtsam/linear/SubgraphSolver.h>

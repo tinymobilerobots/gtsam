@@ -55,7 +55,7 @@ class TranslationFactor : public NoiseModelFactorN<Point3, Point3> {
       : Base(noiseModel, a, b), measured_w_aZb_(w_aZb.point3()) {}
 
   /**
-   * @brief Caclulate error: (norm(Tb - Ta) - measurement)
+   * @brief Calculate error: (norm(Tb - Ta) - measurement)
    * where Tb and Ta are Point3 translations and measurement is
    * the Unit3 translation direction from a to b.
    *
@@ -120,7 +120,7 @@ class BilinearAngleTranslationFactor
   using NoiseModelFactor2<Point3, Point3, Vector1>::evaluateError;
 
   /**
-   * @brief Caclulate error: (scale * (Tb - Ta) - measurement)
+   * @brief Calculate error: (scale * (Tb - Ta) - measurement)
    * where Tb and Ta are Point3 translations and measurement is
    * the Unit3 translation direction from a to b.
    *
@@ -149,11 +149,13 @@ class BilinearAngleTranslationFactor
   }
 
  private:
+#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
   friend class boost::serialization::access;
   template <class ARCHIVE>
   void serialize(ARCHIVE& ar, const unsigned int /*version*/) {
     ar& boost::serialization::make_nvp(
         "Base", boost::serialization::base_object<Base>(*this));
   }
+#endif
 };  // \ BilinearAngleTranslationFactor
 }  // namespace gtsam

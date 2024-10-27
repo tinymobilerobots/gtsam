@@ -14,6 +14,7 @@
  * @brief  A hybrid conditional in the Conditional Linear Gaussian scheme
  * @author Fan Jiang
  * @author Varun Agrawal
+ * @author Frank Dellaert
  * @date   Mar 12, 2022
  */
 
@@ -51,37 +52,21 @@ class HybridValues;
  * @ingroup hybrid
  */
 class GTSAM_EXPORT HybridGaussianConditional
-    : public HybridFactor,
-      public Conditional<HybridFactor, HybridGaussianConditional> {
+    : public HybridGaussianFactor,
+      public Conditional<HybridGaussianFactor, HybridGaussianConditional> {
  public:
   using This = HybridGaussianConditional;
-  using shared_ptr = std::shared_ptr<HybridGaussianConditional>;
-  using BaseFactor = HybridFactor;
-  using BaseConditional = Conditional<HybridFactor, HybridGaussianConditional>;
+  using shared_ptr = std::shared_ptr<This>;
+  using BaseFactor = HybridGaussianFactor;
+  using BaseConditional = Conditional<BaseFactor, HybridGaussianConditional>;
 
   /// typedef for Decision Tree of Gaussian Conditionals
   using Conditionals = DecisionTree<Key, GaussianConditional::shared_ptr>;
 
  private:
-  Conditionals conditionals_;  ///< a decision tree of Gaussian conditionals.
-  double logConstant_;         ///< log of the normalization constant.
-
-  /**
-   * @brief Convert a HybridGaussianConditional of conditionals into
-   * a DecisionTree of Gaussian factor graphs.
-   */
-  GaussianFactorGraphTree asGaussianFactorGraphTree() const;
-
-  /**
-   * @brief Helper function to get the pruner functor.
-   *
-   * @param discreteProbs The pruned discrete probabilities.
-   * @return std::function<GaussianConditional::shared_ptr(
-   * const Assignment<Key> &, const GaussianConditional::shared_ptr &)>
-   */
-  std::function<GaussianConditional::shared_ptr(
-      const Assignment<Key> &, const GaussianConditional::shared_ptr &)>
-  prunerFunc(const DecisionTreeFactor &discreteProbs);
+  ///< Negative-log of the normalization constant (log(\sqrt(|2πΣ|))).
+  ///< Take advantage of the neg-log space so everything is a minimization
+  double negLogConstant_;
 
  public:
   /// @name Constructors
@@ -91,35 +76,83 @@ class GTSAM_EXPORT HybridGaussianConditional
   HybridGaussianConditional() = default;
 
   /**
-   * @brief Construct a new HybridGaussianConditional object.
+   * @brief Construct from one discrete key and vector of conditionals.
    *
-   * @param continuousFrontals the continuous frontals.
-   * @param continuousParents the continuous parents.
+   * @param discreteParent Single discrete parent variable
+   * @param conditionals Vector of conditionals with the same size as the
+   * cardinality of the discrete parent.
+   */
+  HybridGaussianConditional(
+      const DiscreteKey &discreteParent,
+      const std::vector<GaussianConditional::shared_ptr> &conditionals);
+
+  /**
+   * @brief Constructs a HybridGaussianConditional with means mu_i and
+   * standard deviations sigma_i.
+   *
+   * @param discreteParent The discrete parent or "mode" key.
+   * @param key The key for this conditional variable.
+   * @param parameters A vector of pairs (mu_i, sigma_i).
+   */
+  HybridGaussianConditional(
+      const DiscreteKey &discreteParent, Key key,
+      const std::vector<std::pair<Vector, double>> &parameters);
+
+  /**
+   * @brief Constructs a HybridGaussianConditional with conditional means
+   * A × parent + b_i and standard deviations sigma_i.
+   *
+   * @param discreteParent The discrete parent or "mode" key.
+   * @param key The key for this conditional variable.
+   * @param A The matrix A.
+   * @param parent The key of the parent variable.
+   * @param parameters A vector of pairs (b_i, sigma_i).
+   */
+  HybridGaussianConditional(
+      const DiscreteKey &discreteParent, Key key, const Matrix &A, Key parent,
+      const std::vector<std::pair<Vector, double>> &parameters);
+
+  /**
+   * @brief Constructs a HybridGaussianConditional with conditional means
+   * A1 × parent1 + A2 × parent2 + b_i and standard deviations sigma_i.
+   *
+   * @param discreteParent The discrete parent or "mode" key.
+   * @param key The key for this conditional variable.
+   * @param A1 The first matrix.
+   * @param parent1 The key of the first parent variable.
+   * @param A2 The second matrix.
+   * @param parent2 The key of the second parent variable.
+   * @param parameters A vector of pairs (b_i, sigma_i).
+   */
+  HybridGaussianConditional(
+      const DiscreteKey &discreteParent, Key key,  //
+      const Matrix &A1, Key parent1, const Matrix &A2, Key parent2,
+      const std::vector<std::pair<Vector, double>> &parameters);
+
+  /**
+   * @brief Construct from multiple discrete keys and conditional tree.
+   *
    * @param discreteParents the discrete parents. Will be placed last.
    * @param conditionals a decision tree of GaussianConditionals. The number of
    * conditionals should be C^(number of discrete parents), where C is the
    * cardinality of the DiscreteKeys in discreteParents, since the
    * discreteParents will be used as the labels in the decision tree.
    */
-  HybridGaussianConditional(const KeyVector &continuousFrontals,
-                            const KeyVector &continuousParents,
-                            const DiscreteKeys &discreteParents,
+  HybridGaussianConditional(const DiscreteKeys &discreteParents,
                             const Conditionals &conditionals);
 
   /**
-   * @brief Make a Hybrid Gaussian Conditional from a vector of Gaussian conditionals.
-   * The DecisionTree-based constructor is preferred over this one.
+   * @brief Construct from multiple discrete keys M and a tree of
+   * factor/scalar pairs, where the scalar is assumed to be the
+   * the negative log constant for each assignment m, up to a constant.
    *
-   * @param continuousFrontals The continuous frontal variables
-   * @param continuousParents The continuous parent variables
-   * @param discreteParent Single discrete parent variable
-   * @param conditionals Vector of conditionals with the same size as the
-   * cardinality of the discrete parent.
+   * @note Will throw if factors are not actually conditionals.
+   *
+   * @param discreteParents the discrete parents. Will be placed last.
+   * @param conditionalPairs Decision tree of GaussianFactor/scalar pairs.
    */
-  HybridGaussianConditional(
-      const KeyVector &continuousFrontals, const KeyVector &continuousParents,
-      const DiscreteKey &discreteParent,
-      const std::vector<GaussianConditional::shared_ptr> &conditionals);
+  HybridGaussianConditional(const DiscreteKeys &discreteParents,
+                            const FactorValuePairs &pairs);
 
   /// @}
   /// @name Testable
@@ -138,8 +171,14 @@ class GTSAM_EXPORT HybridGaussianConditional
   /// @{
 
   /// @brief Return the conditional Gaussian for the given discrete assignment.
-  GaussianConditional::shared_ptr operator()(
+  GaussianConditional::shared_ptr choose(
       const DiscreteValues &discreteValues) const;
+
+  /// @brief Syntactic sugar for choose.
+  GaussianConditional::shared_ptr operator()(
+      const DiscreteValues &discreteValues) const {
+    return choose(discreteValues);
+  }
 
   /// Returns the total number of continuous components
   size_t nrComponents() const;
@@ -147,9 +186,15 @@ class GTSAM_EXPORT HybridGaussianConditional
   /// Returns the continuous keys among the parents.
   KeyVector continuousParents() const;
 
-  /// The log normalization constant is max of the the individual
-  /// log-normalization constants.
-  double logNormalizationConstant() const override { return logConstant_; }
+  /**
+   * @brief Return log normalization constant in negative log space.
+   *
+   * The log normalization constant is the min of the individual
+   * log-normalization constants.
+   *
+   * @return double
+   */
+  inline double negLogConstant() const override { return negLogConstant_; }
 
   /**
    * Create a likelihood factor for a hybrid Gaussian conditional,
@@ -158,55 +203,9 @@ class GTSAM_EXPORT HybridGaussianConditional
   std::shared_ptr<HybridGaussianFactor> likelihood(
       const VectorValues &given) const;
 
-  /// Getter for the underlying Conditionals DecisionTree
-  const Conditionals &conditionals() const;
-
-  /**
-   * @brief Compute logProbability of the HybridGaussianConditional as a tree.
-   *
-   * @param continuousValues The continuous VectorValues.
-   * @return AlgebraicDecisionTree<Key> A decision tree with the same keys
-   * as the conditionals, and leaf values as the logProbability.
-   */
-  AlgebraicDecisionTree<Key> logProbability(
-      const VectorValues &continuousValues) const;
-
-  /**
-   * @brief Compute the error of this hybrid Gaussian conditional.
-   *
-   * This requires some care, as different components may have
-   * different normalization constants. Let's consider p(x|y,m), where m is
-   * discrete. We need the error to satisfy the invariant:
-   *
-   *    error(x;y,m) = K - log(probability(x;y,m))
-   *
-   * For all x,y,m. But note that K, the (log) normalization constant defined
-   * in Conditional.h, should not depend on x, y, or m, only on the parameters
-   * of the density. Hence, we delegate to the underlying Gaussian
-   * conditionals, indexed by m, which do satisfy:
-   *
-   *    log(probability_m(x;y)) = K_m - error_m(x;y)
-   *
-   * We resolve by having K == max(K_m) and
-   *
-   *    error(x;y,m) = error_m(x;y) + K - K_m
-   *
-   * which also makes error(x;y,m) >= 0 for all x,y,m.
-   *
-   * @param values Continuous values and discrete assignment.
-   * @return double
-   */
-  double error(const HybridValues &values) const override;
-
-  /**
-   * @brief Compute error of the HybridGaussianConditional as a tree.
-   *
-   * @param continuousValues The continuous VectorValues.
-   * @return AlgebraicDecisionTree<Key> A decision tree on the discrete keys
-   * only, with the leaf values as the error for each assignment.
-   */
-  AlgebraicDecisionTree<Key> errorTree(
-      const VectorValues &continuousValues) const;
+  /// Get Conditionals DecisionTree (dynamic cast from factors)
+  /// @note Slow: avoid using in favor of factors(), which uses existing tree.
+  const Conditionals conditionals() const;
 
   /**
    * @brief Compute the logProbability of this hybrid Gaussian conditional.
@@ -229,26 +228,23 @@ class GTSAM_EXPORT HybridGaussianConditional
    * `discreteProbs`.
    *
    * @param discreteProbs A pruned set of probabilities for the discrete keys.
+   * @return Shared pointer to possibly a pruned HybridGaussianConditional
    */
-  void prune(const DecisionTreeFactor &discreteProbs);
+  HybridGaussianConditional::shared_ptr prune(
+      const DecisionTreeFactor &discreteProbs) const;
 
-  /**
-   * @brief Merge the Gaussian Factor Graphs in `this` and `sum` while
-   * maintaining the decision tree structure.
-   *
-   * @param sum Decision Tree of Gaussian Factor Graphs
-   * @return GaussianFactorGraphTree
-   */
-  GaussianFactorGraphTree add(const GaussianFactorGraphTree &sum) const;
   /// @}
 
  private:
+  /// Helper struct for private constructor.
+  struct Helper;
+
+  /// Private constructor that uses helper struct above.
+  HybridGaussianConditional(const DiscreteKeys &discreteParents,
+                            Helper &&helper);
+
   /// Check whether `given` has values for all frontal keys.
   bool allFrontalsGiven(const VectorValues &given) const;
-
-  /// Helper method to compute the error of a conditional.
-  double conditionalError(const GaussianConditional::shared_ptr &conditional,
-                          const VectorValues &continuousValues) const;
 
 #ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
   /** Serialization function */
@@ -257,7 +253,6 @@ class GTSAM_EXPORT HybridGaussianConditional
   void serialize(Archive &ar, const unsigned int /*version*/) {
     ar &BOOST_SERIALIZATION_BASE_OBJECT_NVP(BaseFactor);
     ar &BOOST_SERIALIZATION_BASE_OBJECT_NVP(BaseConditional);
-    ar &BOOST_SERIALIZATION_NVP(conditionals_);
   }
 #endif
 };
