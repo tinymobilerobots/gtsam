@@ -222,4 +222,42 @@ class SymbolicBayesTree {
                  gtsam::DefaultKeyFormatter) const;
 };
 
+class SymbolicBayesTreeClique {
+  SymbolicBayesTreeClique();
+  // SymbolicBayesTreeClique(gtsam::sharedConditional* conditional);
+
+  bool equals(const gtsam::SymbolicBayesTreeClique& other, double tol) const;
+  void print(string s = "", const gtsam::KeyFormatter& keyFormatter =
+                                gtsam::DefaultKeyFormatter) const;
+  size_t numCachedSeparatorMarginals() const;
+  // gtsam::sharedConditional* conditional() const;
+  bool isRoot() const;
+  size_t treeSize() const;
+  gtsam::SymbolicBayesTreeClique* parent() const;
+
+  //   // TODO: need wrapped versions graphs, BayesNet
+  //  BayesNet<ConditionalType> shortcut(derived_ptr root, Eliminate function)
+  //  const; FactorGraph<FactorType> marginal(derived_ptr root, Eliminate
+  //  function) const; FactorGraph<FactorType> joint(derived_ptr C2, derived_ptr
+  //  root, Eliminate function) const;
+  //
+  void deleteCachedShortcuts();
+};
+
+#include <gtsam/inference/VariableIndex.h>
+class VariableIndex {
+  // Standard Constructors and Named Constructors
+  VariableIndex();
+  template <T = {gtsam::FactorGraph<gtsam::Factor>, gtsam::SymbolicFactorGraph,
+                 gtsam::GaussianFactorGraph, gtsam::NonlinearFactorGraph}>
+  VariableIndex(const T& factorGraph);
+  VariableIndex(const gtsam::VariableIndex& other);
+
+  // Testable
+  bool equals(const gtsam::VariableIndex& other, double tol) const;
+  void print(string s = "VariableIndex: ",
+             const gtsam::KeyFormatter& keyFormatter =
+                 gtsam::DefaultKeyFormatter) const;
+};
+
 }  // namespace gtsam
