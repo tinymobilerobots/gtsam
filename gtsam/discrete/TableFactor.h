@@ -179,7 +179,7 @@ class GTSAM_EXPORT TableFactor : public DiscreteFactor {
   double operator()(const DiscreteValues& values) const override;
 
   /// Calculate error for DiscreteValues `x`, is -log(probability).
-  double error(const DiscreteValues& values) const;
+  double error(const DiscreteValues& values) const override;
 
   /// multiply two TableFactors
   TableFactor operator*(const TableFactor& f) const {

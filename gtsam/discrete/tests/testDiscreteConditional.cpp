@@ -22,6 +22,8 @@
 #include <gtsam/discrete/DecisionTreeFactor.h>
 #include <gtsam/discrete/DiscreteConditional.h>
 #include <gtsam/inference/Symbol.h>
+#include <gtsam/discrete/DiscreteFactorGraph.h>
+#include <gtsam/discrete/DiscreteBayesNet.h>
 
 
 using namespace std;
@@ -285,6 +287,35 @@ TEST(DiscreteConditional, choose) {
   EXPECT_LONGS_EQUAL(0, actual3->nrParents());
   DiscreteConditional expected3(C % "1/1");
   EXPECT(assert_equal(expected3, *actual3, 1e-9));
+}
+
+/* ************************************************************************* */
+// Check argmax on P(C|D) and P(D), plus tie-breaking for P(B)
+TEST(DiscreteConditional, Argmax) {
+  DiscreteKey C(2, 2), D(4, 2);
+  DiscreteConditional B_prior(D, "1/1");
+  DiscreteConditional D_prior(D, "1/3");
+  DiscreteConditional C_given_D((C | D) = "1/4 1/1");
+
+  // Case 1: Tie breaking
+  size_t actual1 = B_prior.argmax();
+  // In the case of ties, the first value is chosen.
+  EXPECT_LONGS_EQUAL(0, actual1);
+  // Case 2: No parents
+  size_t actual2 = D_prior.argmax();
+  // Selects 1 since it has 0.75 probability
+  EXPECT_LONGS_EQUAL(1, actual2);
+
+  // Case 3: Given parent values
+  DiscreteValues given;
+  given[D.first] = 1;
+  size_t actual3 = C_given_D.argmax(given);
+  // Should be 0 since D=1 gives 0.5/0.5
+  EXPECT_LONGS_EQUAL(0, actual3);
+  
+  given[D.first] = 0;
+  size_t actual4 = C_given_D.argmax(given);
+  EXPECT_LONGS_EQUAL(1, actual4);
 }
 
 /* ************************************************************************* */
