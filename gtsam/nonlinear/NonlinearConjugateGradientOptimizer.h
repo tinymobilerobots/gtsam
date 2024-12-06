@@ -133,7 +133,8 @@ class GTSAM_EXPORT NonlinearConjugateGradientOptimizer
 
 /** Implement the golden-section line search algorithm */
 template <class S, class V, class W>
-double lineSearch(const S &system, const V currentValues, const W &gradient) {
+double GoldenSectionSearch(const S &system, const V currentValues,
+                           const W &gradient) {
   /* normalize it such that it becomes a unit vector */
   const double g = gradient.norm();
 
@@ -178,6 +179,43 @@ double lineSearch(const S &system, const V currentValues, const W &gradient) {
     }
   }
   return 0.0;
+}
+
+/// Find stepsize using Wolfe Conditions
+/// (https://sites.math.washington.edu/~burke/crs/408/notes/nlp/line.pdf)
+template <class S, class V, class W>
+double BacktrackingSearch(const S &system, const V currentValues,
+                          const W &gradient) {
+  const double gamma = 0.5, c1 = 0.001, c2 = 0.9;
+  double nu = 0;
+
+  double originalError = system.error(currentValues);
+
+  while (true) {
+    double alpha = std::pow(gamma, nu);
+
+    const V newValues = system.advance(currentValues, alpha, gradient);
+    double newError = system.error(newValues);
+
+    double g = system.gradient(currentValues).dot(gradient);
+    // Armijo condition
+    bool armijo = (newError <= originalError + c1 * alpha * g);
+    // Curvature condition
+    bool curvature = true;//system.gradient(newValues).dot(gradient) >= c2 * g;
+
+    if (armijo && curvature) {
+      std::cout << "alpha: " << alpha << std::endl;
+      return -alpha;
+    }
+
+    nu += 1;
+  }
+}
+
+template <class S, class V, class W>
+double lineSearch(const S &system, const V currentValues, const W &gradient) {
+  return BacktrackingSearch(system, currentValues, gradient);
+  // return GoldenSectionSearch(system, currentValues, gradient);
 }
 
 /**

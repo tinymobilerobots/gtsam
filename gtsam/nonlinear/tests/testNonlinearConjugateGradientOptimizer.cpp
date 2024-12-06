@@ -215,8 +215,8 @@ TEST(NonlinearConjugateGradientOptimizer, Optimization) {
 
   NonlinearOptimizerParams param;
   param.maxIterations = 350;
-  // param.verbosity = NonlinearOptimizerParams::LINEAR;
-  param.verbosity = NonlinearOptimizerParams::SILENT;
+  param.verbosity = NonlinearOptimizerParams::ERROR;
+  // param.verbosity = NonlinearOptimizerParams::SILENT;
 
   double x = 3.0, y = 5.0;
   Values initialEstimate;
