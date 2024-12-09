@@ -28,6 +28,7 @@
 namespace gtsam {
 
 class DecisionTreeFactor;
+class TableFactor;
 class DiscreteConditional;
 class HybridValues;
 
@@ -126,9 +127,16 @@ class GTSAM_EXPORT DiscreteFactor : public Factor {
   /// Compute error for each assignment and return as a tree
   virtual AlgebraicDecisionTree<Key> errorTree() const;
 
-  /// Multiply in a DecisionTreeFactor and return the result as
-  /// DecisionTreeFactor
-  virtual DecisionTreeFactor operator*(const DecisionTreeFactor&) const = 0;
+  /// Multiply a DiscreteFactor and return a DiscreteFactor
+  virtual DiscreteFactor::shared_ptr operator*(const DiscreteFactor::shared_ptr& f) const = 0;
+
+  /// Multiplication overload for use in Visitor Pattern
+  virtual DiscreteFactor::shared_ptr operator*(
+      const std::shared_ptr<DecisionTreeFactor>& f) const = 0;
+
+  /// Multiplication overload for use in Visitor Pattern
+  virtual DiscreteFactor::shared_ptr operator*(
+      const std::shared_ptr<TableFactor>& f) const = 0;
 
   virtual DecisionTreeFactor toDecisionTreeFactor() const = 0;
 

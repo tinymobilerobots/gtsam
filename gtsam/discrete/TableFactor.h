@@ -161,8 +161,18 @@ class GTSAM_EXPORT TableFactor : public DiscreteFactor {
     return apply(f, Ring::mul);
   };
 
-  /// multiply with DecisionTreeFactor
-  DecisionTreeFactor operator*(const DecisionTreeFactor& f) const override;
+
+  /// Multiply TableFactor with a DiscreteFactor
+  virtual DiscreteFactor::shared_ptr operator*(
+      const DiscreteFactor::shared_ptr& f) const override;
+
+  /// Multiplication overload for use in Visitor Pattern
+  virtual DiscreteFactor::shared_ptr operator*(
+      const std::shared_ptr<DecisionTreeFactor>& f) const override;
+
+  /// Multiplication overload for use in Visitor Pattern
+  virtual DiscreteFactor::shared_ptr operator*(
+      const std::shared_ptr<TableFactor>& f) const override;
 
   static double safe_div(const double& a, const double& b);
 

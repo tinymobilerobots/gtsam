@@ -95,6 +95,40 @@ class GTSAM_UNSTABLE_EXPORT Constraint : public DiscreteFactor {
   }
 
   /// @}
+
+  DiscreteFactor::shared_ptr sum(size_t nrFrontals) const override {
+    throw std::runtime_error("Not implemented");
+  }
+
+  DiscreteFactor::shared_ptr sum(const Ordering& keys) const override {
+    throw std::runtime_error("Not implemented");
+  }
+
+  DiscreteFactor::shared_ptr max(size_t nrFrontals) const override {
+    throw std::runtime_error("Not implemented");
+  }
+
+  DiscreteFactor::shared_ptr max(const Ordering& keys) const override {
+    throw std::runtime_error("Not implemented");
+  }
+
+  /// Multiplication overload for use in Visitor Pattern
+  virtual DiscreteFactor::shared_ptr operator*(
+      const DiscreteFactor::shared_ptr& f) const override {
+    throw std::runtime_error("Not implemented");
+  }
+
+  /// Multiplication overload for use in Visitor Pattern
+  virtual DiscreteFactor::shared_ptr operator*(
+      const std::shared_ptr<DecisionTreeFactor>& f) const override {
+    throw std::runtime_error("Not implemented");
+  }
+
+  /// Multiplication overload for use in Visitor Pattern
+  virtual DiscreteFactor::shared_ptr operator*(
+      const std::shared_ptr<TableFactor>& f) const override {
+    throw std::runtime_error("Not implemented");
+  }
 };
 // DiscreteFactor
 

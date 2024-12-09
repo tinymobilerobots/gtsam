@@ -43,11 +43,6 @@ DecisionTreeFactor Domain::toDecisionTreeFactor() const {
   return converted;
 }
 
-/* ************************************************************************* */
-DecisionTreeFactor Domain::operator*(const DecisionTreeFactor& f) const {
-  // TODO: can we do this more efficiently?
-  return toDecisionTreeFactor() * f;
-}
 
 /* ************************************************************************* */
 bool Domain::ensureArcConsistency(Key j, Domains* domains) const {

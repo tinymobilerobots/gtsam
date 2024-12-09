@@ -171,8 +171,22 @@ double TableFactor::error(const HybridValues& values) const {
 }
 
 /* ************************************************************************ */
-DecisionTreeFactor TableFactor::operator*(const DecisionTreeFactor& f) const {
-  return toDecisionTreeFactor() * f;
+DiscreteFactor::shared_ptr TableFactor::operator*(
+    const DiscreteFactor::shared_ptr& f) const {
+  return f->operator*(std::make_shared<TableFactor>(*this));
+}
+
+/* ************************************************************************ */
+DiscreteFactor::shared_ptr TableFactor::operator*(
+    const DecisionTreeFactor::shared_ptr& dtf) const {
+  return this->operator*(
+      std::make_shared<TableFactor>(dtf->discreteKeys(), *dtf));
+}
+
+/* ************************************************************************ */
+DiscreteFactor::shared_ptr TableFactor::operator*(
+    const TableFactor::shared_ptr& tf) const {
+  return std::make_shared<TableFactor>(tf->operator*(*this));
 }
 
 /* ************************************************************************ */

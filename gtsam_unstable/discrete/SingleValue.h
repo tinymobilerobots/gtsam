@@ -60,9 +60,6 @@ class GTSAM_UNSTABLE_EXPORT SingleValue : public Constraint {
   /// Convert into a decisiontree
   DecisionTreeFactor toDecisionTreeFactor() const override;
 
-  /// Multiply into a decisiontree
-  DecisionTreeFactor operator*(const DecisionTreeFactor& f) const override;
-
   /*
    * Ensure Arc-consistency: just sets domain[j] to {value_}.
    * @param j domain to be checked
@@ -80,22 +77,6 @@ class GTSAM_UNSTABLE_EXPORT SingleValue : public Constraint {
 
   /// Get the number of non-zero values contained in this factor.
   uint64_t nrValues() const override { return 1; };
-
-  DiscreteFactor::shared_ptr sum(size_t nrFrontals) const override {
-    throw std::runtime_error("Not implemented");
-  }
-
-  DiscreteFactor::shared_ptr sum(const Ordering& keys) const override {
-    throw std::runtime_error("Not implemented");
-  }
-
-  DiscreteFactor::shared_ptr max(size_t nrFrontals) const override {
-    throw std::runtime_error("Not implemented");
-  }
-
-  DiscreteFactor::shared_ptr max(const Ordering& keys) const override {
-    throw std::runtime_error("Not implemented");
-  }
 };
 
 }  // namespace gtsam

@@ -63,11 +63,6 @@ class BinaryAllDiff : public Constraint {
     return converted;
   }
 
-  /// Multiply into a decisiontree
-  DecisionTreeFactor operator*(const DecisionTreeFactor& f) const override {
-    // TODO: can we do this more efficiently?
-    return toDecisionTreeFactor() * f;
-  }
 
   /*
    * Ensure Arc-consistency by checking every possible value of domain j.
@@ -99,22 +94,6 @@ class BinaryAllDiff : public Constraint {
 
   /// Get the number of non-zero values contained in this factor.
   uint64_t nrValues() const override { return 1; };
-
-  DiscreteFactor::shared_ptr sum(size_t nrFrontals) const override {
-    throw std::runtime_error("Not implemented");
-  }
-
-  DiscreteFactor::shared_ptr sum(const Ordering& keys) const override {
-    throw std::runtime_error("Not implemented");
-  }
-
-  DiscreteFactor::shared_ptr max(size_t nrFrontals) const override {
-    throw std::runtime_error("Not implemented");
-  }
-
-  DiscreteFactor::shared_ptr max(const Ordering& keys) const override {
-    throw std::runtime_error("Not implemented");
-  }
 };
 
 }  // namespace gtsam

@@ -50,9 +50,6 @@ class GTSAM_UNSTABLE_EXPORT AllDiff : public Constraint {
   /// Convert into a decisiontree, can be *very* expensive !
   DecisionTreeFactor toDecisionTreeFactor() const override;
 
-  /// Multiply into a decisiontree
-  DecisionTreeFactor operator*(const DecisionTreeFactor& f) const override;
-
   /// Compute error for each assignment and return as a tree
   AlgebraicDecisionTree<Key> errorTree() const override {
     throw std::runtime_error("AllDiff::error not implemented");
@@ -76,21 +73,6 @@ class GTSAM_UNSTABLE_EXPORT AllDiff : public Constraint {
   /// Get the number of non-zero values contained in this factor.
   uint64_t nrValues() const override { return 1; };
 
-  DiscreteFactor::shared_ptr sum(size_t nrFrontals) const override {
-    throw std::runtime_error("Not implemented");
-  }
-
-  DiscreteFactor::shared_ptr sum(const Ordering& keys) const override {
-    throw std::runtime_error("Not implemented");
-  }
-
-  DiscreteFactor::shared_ptr max(size_t nrFrontals) const override {
-    throw std::runtime_error("Not implemented");
-  }
-
-  DiscreteFactor::shared_ptr max(const Ordering& keys) const override {
-    throw std::runtime_error("Not implemented");
-  }
 };
 
 }  // namespace gtsam

@@ -63,6 +63,27 @@ namespace gtsam {
   }
 
   /* ************************************************************************ */
+  DiscreteFactor::shared_ptr DecisionTreeFactor::operator*(
+      const DiscreteFactor::shared_ptr& f) const {
+    return f->operator*(std::make_shared<DecisionTreeFactor>(*this));
+  }
+
+  /* ************************************************************************ */
+  DiscreteFactor::shared_ptr DecisionTreeFactor::operator*(
+      const std::shared_ptr<DecisionTreeFactor>& dtf) const {
+    return std::make_shared<DecisionTreeFactor>(apply(*dtf, Ring::mul));
+  }
+
+  /* ************************************************************************ */
+  DiscreteFactor::shared_ptr DecisionTreeFactor::operator*(
+      const std::shared_ptr<TableFactor>& tf) const {
+    // Convert DecisionTreeFactor to TableFactor is cheaper than the other way
+    // around, so we convert everything to a TableFactor
+    return std::make_shared<TableFactor>(
+        tf->operator*(TableFactor(this->discreteKeys(), *this)));
+  }
+
+  /* ************************************************************************ */
   double DecisionTreeFactor::safe_div(const double& a, const double& b) {
     // The use for safe_div is when we divide the product factor by the sum
     // factor. If the product or sum is zero, we accord zero probability to the

@@ -51,12 +51,6 @@ DecisionTreeFactor AllDiff::toDecisionTreeFactor() const {
 }
 
 /* ************************************************************************* */
-DecisionTreeFactor AllDiff::operator*(const DecisionTreeFactor& f) const {
-  // TODO: can we do this more efficiently?
-  return toDecisionTreeFactor() * f;
-}
-
-/* ************************************************************************* */
 bool AllDiff::ensureArcConsistency(Key j, Domains* domains) const {
   Domain& Dj = domains->at(j);
 

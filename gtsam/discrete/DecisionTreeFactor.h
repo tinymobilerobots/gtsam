@@ -22,6 +22,7 @@
 #include <gtsam/discrete/DiscreteFactor.h>
 #include <gtsam/discrete/DiscreteKey.h>
 #include <gtsam/discrete/Ring.h>
+#include <gtsam/discrete/TableFactor.h>
 #include <gtsam/inference/Ordering.h>
 
 #include <algorithm>
@@ -145,9 +146,21 @@ namespace gtsam {
     double error(const DiscreteValues& values) const override;
 
     /// multiply two factors
-    DecisionTreeFactor operator*(const DecisionTreeFactor& f) const override {
+    DecisionTreeFactor operator*(const DecisionTreeFactor& f) const {
       return apply(f, Ring::mul);
     }
+
+    /// Multiply DecisionTreeFactor with a DiscreteFactor
+    virtual DiscreteFactor::shared_ptr operator*(
+        const DiscreteFactor::shared_ptr& f) const override;
+
+    /// Multiplication overload for use in Visitor Pattern
+    virtual DiscreteFactor::shared_ptr operator*(
+        const std::shared_ptr<DecisionTreeFactor>& dtf) const override;
+
+    /// Multiplication overload for use in Visitor Pattern
+    virtual DiscreteFactor::shared_ptr operator*(
+        const std::shared_ptr<TableFactor>& tf) const override;
 
     static double safe_div(const double& a, const double& b);
 

@@ -36,12 +36,6 @@ DecisionTreeFactor SingleValue::toDecisionTreeFactor() const {
 }
 
 /* ************************************************************************* */
-DecisionTreeFactor SingleValue::operator*(const DecisionTreeFactor& f) const {
-  // TODO: can we do this more efficiently?
-  return toDecisionTreeFactor() * f;
-}
-
-/* ************************************************************************* */
 bool SingleValue::ensureArcConsistency(Key j, Domains* domains) const {
   if (j != keys_[0])
     throw invalid_argument("SingleValue check on wrong domain");
