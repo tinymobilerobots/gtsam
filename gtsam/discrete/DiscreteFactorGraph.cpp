@@ -64,10 +64,12 @@ namespace gtsam {
   }
 
   /* ************************************************************************* */
-  DecisionTreeFactor DiscreteFactorGraph::product() const {
-    DecisionTreeFactor result;
+  TableFactor DiscreteFactorGraph::product() const {
+    TableFactor result;
     for (const sharedFactor& factor : *this) {
-      if (factor) result = (*factor) * result;
+      if (factor) {
+        result = *std::dynamic_pointer_cast<TableFactor>(result * factor);
+      }
     }
     return result;
   }
@@ -118,7 +120,7 @@ namespace gtsam {
    * @param product The product discrete factor.
    * @return DiscreteFactor::shared_ptr
    */
-  static DecisionTreeFactor Normalize(const DecisionTreeFactor& product) {
+  static TableFactor Normalize(const TableFactor& product) {
     // Max over all the potentials by pretending all keys are frontal:
     gttic_(DiscreteFindMax);
     auto normalization = product.max(product.size());
@@ -128,7 +130,7 @@ namespace gtsam {
     // Normalize the product factor to prevent underflow.
     auto normalized_product =
         product /
-        (*std::dynamic_pointer_cast<DecisionTreeFactor>(normalization));
+        (*std::dynamic_pointer_cast<TableFactor>(normalization));
     gttoc_(DiscreteNormalization);
 
     return normalized_product;
@@ -141,7 +143,7 @@ namespace gtsam {
                   const Ordering& frontalKeys) {
     // PRODUCT: multiply all factors
     gttic_(MPEProduct);
-    DecisionTreeFactor product = factors.product();
+    TableFactor product = factors.product();
     gttoc_(MPEProduct);
 
     gttic_(Normalize);
@@ -152,8 +154,7 @@ namespace gtsam {
 
     // max out frontals, this is the factor on the separator
     gttic(max);
-    DecisionTreeFactor::shared_ptr max =
-        std::dynamic_pointer_cast<DecisionTreeFactor>(product.max(frontalKeys));
+    auto max = std::dynamic_pointer_cast<TableFactor>(product.max(frontalKeys));
     gttoc(max);
 
     // Ordering keys for the conditional so that frontalKeys are really in front
@@ -230,7 +231,7 @@ namespace gtsam {
                     const Ordering& frontalKeys) {
     // PRODUCT: multiply all factors
     gttic_(product);
-    DecisionTreeFactor product = factors.product();
+    TableFactor product = factors.product();
     gttoc_(product);
 
     gttic_(Normalize);
@@ -240,8 +241,7 @@ namespace gtsam {
 
     // sum out frontals, this is the factor on the separator
     gttic_(sum);
-    DecisionTreeFactor::shared_ptr sum = std::dynamic_pointer_cast<DecisionTreeFactor>(
-        product.sum(frontalKeys));
+    auto sum = std::dynamic_pointer_cast<TableFactor>(product.sum(frontalKeys));
     gttoc_(sum);
 
     // Ordering keys for the conditional so that frontalKeys are really in front
