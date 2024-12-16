@@ -12,7 +12,7 @@
 /**
  * @file    NavState.h
  * @brief   Navigation state composing of attitude, position, and velocity
- * @author  Frank Dellaert
+ * @authors Frank Dellaert, Varun Agrawal, Fan Jiang
  * @date    July 2015
  **/
 
@@ -46,9 +46,8 @@ class GTSAM_EXPORT NavState : public LieGroup<NavState, 9> {
 
 public:
 
-  enum {
-    dimension = 9
-  };
+  inline constexpr static auto dimension = 9;
+
 
   /// @name Constructors
   /// @{
@@ -91,9 +90,6 @@ public:
   const Pose3 pose() const {
     return Pose3(attitude(), position());
   }
-
-  /// Syntactic sugar
-  const Rot3& rotation() const { return attitude(); };
 
   /// @}
   /// @name Derived quantities
@@ -154,6 +150,9 @@ public:
   NavState operator*(const NavState& T) const {
     return NavState(R_ * T.R_, t_ + R_ * T.t_, v_ + R_ * T.v_);
   }
+
+  /// Syntactic sugar
+  const Rot3& rotation() const { return attitude(); };
 
   /// @}
   /// @name Lie Group
@@ -254,13 +253,6 @@ public:
     static NavState Retract(const Vector9& xi, ChartJacobian Hxi = {});
     static Vector9 Local(const NavState& state, ChartJacobian Hstate = {});
   };
-
-  /**
-   * Compute the 6x3 bottom-left block Qs of the SE_2(3) Expmap derivative
-   * matrix
-   */
-  static Matrix63 ComputeQforExpmapDerivative(const Vector9& xi,
-                                              double nearZeroThreshold = 1e-5);
 
   /// @}
   /// @name Dynamics
