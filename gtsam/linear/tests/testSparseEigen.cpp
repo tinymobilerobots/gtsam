@@ -41,8 +41,8 @@ TEST(SparseEigen, sparseJacobianEigen) {
   // Sparse Matrix
   auto sparseResult = sparseJacobianEigen(gfg);
   EXPECT_LONGS_EQUAL(16, sparseResult.nonZeros());
-  EXPECT(assert_equal(4, sparseResult.rows()));
-  EXPECT(assert_equal(6, sparseResult.cols()));
+  EXPECT_LONGS_EQUAL(4, sparseResult.rows());
+  EXPECT_LONGS_EQUAL(6, sparseResult.cols());
   EXPECT(assert_equal(gfg.augmentedJacobian(), Matrix(sparseResult)));
 
   // Call sparseJacobian with optional ordering...
@@ -57,8 +57,8 @@ TEST(SparseEigen, sparseJacobianEigen) {
   gfg.add(2, Matrix21::Zero(), Vector2::Zero(), model);     // zero col
   sparseResult = sparseJacobianEigen(gfg);
   EXPECT_LONGS_EQUAL(16, sparseResult.nonZeros());
-  EXPECT(assert_equal(8, sparseResult.rows()));
-  EXPECT(assert_equal(7, sparseResult.cols()));
+  EXPECT_LONGS_EQUAL(8, sparseResult.rows());
+  EXPECT_LONGS_EQUAL(7, sparseResult.cols());
 }
 
 /* ************************************************************************* */
