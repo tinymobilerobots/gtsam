@@ -9,6 +9,7 @@ endif()
 
 if (NOT GTSAM_USE_BOOST_FEATURES)
 	list(APPEND excluded_tests "testGraph.cpp")
+	list(APPEND excluded_tests "testSubgraphSolver.cpp")
 endif()
 
 if (NOT GTSAM_ENABLE_BOOST_SERIALIZATION)

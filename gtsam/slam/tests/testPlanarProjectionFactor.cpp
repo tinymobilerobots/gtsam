@@ -337,8 +337,8 @@ TEST(PlanarProjectionFactor3, SolveOffset) {
     SharedNoiseModel pxModel = noiseModel::Diagonal::Sigmas(Vector2(1, 1));
     SharedNoiseModel xNoise = noiseModel::Diagonal::Sigmas(Vector3(0.01, 0.01, 0.01));
     // offset model is wide, so the solver finds the right answer.
-    SharedNoiseModel cNoise = noiseModel::Diagonal::Sigmas(Vector6(10, 10, 10, 10, 10, 10));
-    SharedNoiseModel kNoise = noiseModel::Diagonal::Sigmas(Vector9(0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001));
+    SharedNoiseModel cNoise = noiseModel::Diagonal::Sigmas((Vector6() << 10, 10, 10, 10, 10, 10).finished());
+    SharedNoiseModel kNoise = noiseModel::Diagonal::Sigmas((Vector9() << 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001).finished());
 
     // landmarks
     Point3 l0(1, 0, 1);
